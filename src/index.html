@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>慢慢来</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app" class="app" data-panel="stats">
+    <section id="noteCard" class="note-card" aria-label="本次开机期间的随手记">
+      <textarea id="noteInput" maxlength="280" placeholder=""></textarea>
+    </section>
+
+    <section id="hoverCard" class="hover-card">
+      <div class="drag-handle" title="拖动"></div>
+
+      <div id="statsPanel" class="panel stats-panel">
+        <div id="activityRows" class="activity-rows"></div>
+      </div>
+
+      <div id="addPanel" class="panel add-panel">
+        <button class="back-button" data-back type="button">‹</button>
+        <label for="newActivityInput">新词条</label>
+        <div class="input-row">
+          <input id="newActivityInput" maxlength="10" autocomplete="off" placeholder="例如：写作">
+          <button id="saveActivityButton" type="button">添加</button>
+        </div>
+        <div id="customActivityList" class="custom-list"></div>
+      </div>
+
+      <div id="weekPanel" class="panel week-panel">
+        <button class="back-button" data-back type="button">‹</button>
+        <div id="weekBars" class="week-bars"></div>
+        <div id="weekTotals" class="week-totals"></div>
+      </div>
+
+      <div id="settingsPanel" class="panel settings-panel">
+        <button class="back-button" data-back type="button">‹</button>
+        <div class="setting-line">
+          <span>图画</span>
+          <div class="choice-row">
+            <button class="choice theme-choice" data-theme="apple" type="button">苹果</button>
+            <button class="choice theme-choice" data-theme="aquarium" type="button">鱼缸</button>
+          </div>
+        </div>
+        <div class="setting-line">
+          <span>风格</span>
+          <div class="choice-row">
+            <button class="choice appearance-choice" data-appearance="soft" type="button">柔和</button>
+            <button class="choice appearance-choice" data-appearance="cyber" type="button">赛博</button>
+            <button class="choice appearance-choice" data-appearance="auto" type="button">自动</button>
+          </div>
+        </div>
+        <div class="setting-line">
+          <span>周期</span>
+          <div class="choice-row">
+            <button class="choice minute-choice" data-minutes="20" type="button">20</button>
+            <button class="choice minute-choice" data-minutes="30" type="button">30</button>
+            <button class="choice minute-choice" data-minutes="45" type="button">45</button>
+          </div>
+        </div>
+        <label class="login-toggle">
+          <input id="launchAtLogin" type="checkbox">
+          <span></span>
+          开机启动
+        </label>
+      </div>
+
+      <footer class="card-footer">
+        <div class="window-actions">
+          <button id="closeButton" class="danger-action" type="button" title="退出并停止计时" aria-label="退出">&times;</button>
+          <button id="minimizeButton" type="button" title="收起为插画" aria-label="收起">&minus;</button>
+        </div>
+        <button id="addButton" class="add-activity-action" type="button" title="新增时间分类">&#65291; 分类</button>
+        <div class="footer-actions">
+          <button id="weekButton" type="button" title="最近 7 天" aria-label="最近 7 天">7d</button>
+          <button id="noteButton" type="button" title="随手记卡片" aria-label="随手记">▤</button>
+          <button id="settingsButton" type="button" title="设置" aria-label="设置">⚙</button>
+        </div>
+      </footer>
+    </section>
+
+    <section id="visualStage" class="visual-stage" aria-label="休息周期">
+      <div id="appleVisual" class="theme-visual apple-visual">
+        <svg viewBox="0 0 180 180" role="img" aria-label="逐渐被吃掉的苹果">
+          <defs>
+            <radialGradient id="appleRed" cx="34%" cy="24%" r="76%">
+              <stop offset="0" stop-color="#ff8272"/>
+              <stop offset=".62" stop-color="#ed5a50"/>
+              <stop offset="1" stop-color="#c9423f"/>
+            </radialGradient>
+            <linearGradient id="appleFlesh" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#fff1bd"/>
+              <stop offset="1" stop-color="#edcf86"/>
+            </linearGradient>
+            <filter id="appleSoft" x="-30%" y="-30%" width="160%" height="170%">
+              <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="9" result="noise"/>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.7"/>
+              <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#7d443e" flood-opacity=".2"/>
+            </filter>
+            <mask id="appleBiteMask">
+              <rect width="180" height="180" fill="white"/>
+              <g fill="black" id="appleBites">
+                <circle class="apple-bite" data-threshold=".14" data-max="30" cx="153" cy="76" r="0"/>
+                <circle class="apple-bite" data-threshold=".34" data-max="28" cx="31" cy="126" r="0"/>
+                <circle class="apple-bite" data-threshold=".51" data-max="32" cx="149" cy="126" r="0"/>
+                <circle class="apple-bite" data-threshold=".68" data-max="31" cx="27" cy="79" r="0"/>
+              </g>
+            </mask>
+          </defs>
+          <ellipse cx="91" cy="158" rx="50" ry="8" fill="#72574f" opacity=".12"/>
+          <g id="appleBody" mask="url(#appleBiteMask)" filter="url(#appleSoft)">
+            <image id="appleFullImage" href="assets/apple.png" x="0" y="0" width="180" height="180" preserveAspectRatio="xMidYMid meet"/>
+          </g>
+          <image id="appleCoreImage" href="assets/apple-core-soft-v2.png" x="0" y="0" width="180" height="180" preserveAspectRatio="xMidYMid meet" opacity="0"/>
+          <g id="appleLeaf"></g>
+        </svg>
+      </div>
+
+      <div id="aquariumVisual" class="theme-visual aquarium-visual is-hidden">
+        <img id="aquariumArtwork" class="tank-artwork" src="assets/aquarium-soft.png" alt="每五分钟游入一条金鱼的鱼缸">
+        <div id="fishLayer" class="fish-layer" aria-hidden="true">
+          <img class="fish fish-art fish-1" data-fish="1" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-2" data-fish="2" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-3" data-fish="3" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-4" data-fish="4" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-5" data-fish="5" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-6" data-fish="6" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-7" data-fish="7" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-8" data-fish="8" src="assets/goldfish-soft.png" alt="">
+          <img class="fish fish-art fish-9" data-fish="9" src="assets/goldfish-soft.png" alt="">
+        </div>
+      </div>
+
+      <div id="timeOverlay" class="time-overlay">
+        <strong id="elapsedMinutes">0</strong><span>min</span>
+        <button id="resetButton" type="button">Reset</button>
+      </div>
+    </section>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>

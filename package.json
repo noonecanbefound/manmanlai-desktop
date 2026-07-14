@@ -1,0 +1,47 @@
+{
+  "name": "quiet-time-companion",
+  "version": "0.1.0",
+  "description": "安静的 Windows 动态休息与活动计时工具",
+  "author": "noonecanbefound",
+  "license": "MIT",
+  "homepage": "https://github.com/noonecanbefound/manmanlai-desktop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noonecanbefound/manmanlai-desktop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noonecanbefound/manmanlai-desktop/issues"
+  },
+  "keywords": [
+    "electron",
+    "windows",
+    "break-reminder",
+    "activity-timer",
+    "desktop-widget"
+  ],
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js",
+    "pack": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "43.1.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "local.quiettime.companion",
+    "productName": "慢慢来",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "!src/assets/apple-core-soft.png",
+      "!src/assets/apple-cyber.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "artifactName": "慢慢来-${version}.${ext}"
+    }
+  }
+}
