@@ -1,6 +1,6 @@
 {
   "name": "quiet-time-companion",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "安静的 Windows 动态休息与活动计时工具",
   "author": "noonecanbefound",
   "license": "MIT",
@@ -41,7 +41,7 @@
     ],
     "win": {
       "target": "portable",
-      "artifactName": "慢慢来-${version}.${ext}"
+      "artifactName": "Manmanlai-${version}-Windows.${ext}"
     }
   }
 }
