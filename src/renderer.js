@@ -16,7 +16,9 @@ const state = {
   hovered: false,
   noteVisible: false,
   bootTime: 0,
-  collapseTimer: null
+  collapseTimer: null,
+  modeTimer: null,
+  hoverOpenedAt: 0
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -24,6 +26,7 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 const el = {
   app: $('#app'), activityRows: $('#activityRows'), elapsedMinutes: $('#elapsedMinutes'),
   resetButton: $('#resetButton'), appleVisual: $('#appleVisual'), aquariumVisual: $('#aquariumVisual'),
+  visualStage: $('#visualStage'), hoverCard: $('#hoverCard'), hoverBridge: $('#hoverBridge'),
   appleBody: $('#appleBody'), appleFullImage: $('#appleFullImage'), appleCoreImage: $('#appleCoreImage'),
   aquariumArtwork: $('#aquariumArtwork'), appleLeaf: $('#appleLeaf'),
   noteCard: $('#noteCard'), noteInput: $('#noteInput'), newActivityInput: $('#newActivityInput'),
@@ -96,7 +99,11 @@ function toggleActivityPause() {
 
 function renderActivities() {
   const day = ensureDay();
-  const activities = allActivities();
+  const activities = [...new Set([
+    state.currentActivity,
+    state.pausedActivity,
+    ...allActivities()
+  ].filter(Boolean))];
   const maxSeconds = Math.max(60, ...activities.map((name) => day.activities[name] || 0));
   el.activityRows.replaceChildren();
 
@@ -106,21 +113,38 @@ function renderActivities() {
     const active = state.currentActivity === name;
     const paused = state.pausedActivity === name;
     row.className = `activity-row${active ? ' is-active' : ''}${paused ? ' is-paused' : ''}`;
-    row.title = active ? `${name}正在计时` : paused ? `${name}已暂停` : `切换到${name}`;
+    row.dataset.activity = name;
+    row.title = active ? `${name}正在计时，点击暂停` : paused ? `${name}已暂停，点击继续` : `切换到${name}`;
 
     const dot = document.createElement('span'); dot.className = 'status-dot';
-    const label = document.createElement('span'); label.className = 'activity-name'; label.textContent = name;
+    const label = document.createElement('span'); label.className = 'activity-name';
+    label.textContent = name;
     const time = document.createElement('span'); time.className = 'activity-time'; time.textContent = formatMinutes(seconds);
     const pause = document.createElement('button'); pause.className = 'pause-toggle'; pause.type = 'button';
     pause.textContent = active ? 'Ⅱ' : paused ? '▶' : '';
     pause.title = active ? '暂停活动计时' : paused ? '继续活动计时' : '';
-    if (active || paused) pause.addEventListener('click', (event) => { event.stopPropagation(); toggleActivityPause(); });
+    pause.tabIndex = -1;
+    pause.setAttribute('aria-hidden', 'true');
     const track = document.createElement('span'); track.className = 'bar-track';
     const fill = document.createElement('span'); fill.className = 'bar-fill'; fill.style.width = `${(seconds / maxSeconds) * 100}%`;
     track.append(fill);
     row.append(dot, label, time, pause, track);
-    row.addEventListener('click', () => { if (!active) selectActivity(name); });
+    row.addEventListener('click', () => {
+      if (active || paused) toggleActivityPause();
+      else selectActivity(name);
+    });
     el.activityRows.append(row);
+  });
+}
+
+function updateActivityMetrics() {
+  const day = ensureDay();
+  const rows = [...el.activityRows.children];
+  const maxSeconds = Math.max(60, ...rows.map((row) => day.activities[row.dataset.activity] || 0));
+  rows.forEach((row) => {
+    const seconds = day.activities[row.dataset.activity] || 0;
+    row.querySelector('.activity-time').textContent = formatMinutes(seconds);
+    row.querySelector('.bar-fill').style.width = `${(seconds / maxSeconds) * 100}%`;
   });
 }
 
@@ -174,17 +198,33 @@ function renderWeek() {
 function setHovered(value) {
   clearTimeout(state.collapseTimer);
   if (state.hovered === value) return;
+  clearTimeout(state.modeTimer);
   state.hovered = value;
-  el.app.classList.toggle('is-hovered', value);
-  window.desktop.setMode({ hovered: value, noteVisible: state.noteVisible });
-  if (!value) setPanel('stats');
+  if (value) {
+    state.hoverOpenedAt = Date.now();
+    renderActivities();
+    window.desktop.setMode({ hovered: true, noteVisible: state.noteVisible });
+    state.modeTimer = setTimeout(() => {
+      if (state.hovered) el.app.classList.add('is-hovered');
+    }, 32);
+  } else {
+    el.app.classList.remove('is-hovered');
+    setPanel('stats');
+    state.modeTimer = setTimeout(() => {
+      if (!state.hovered) window.desktop.setMode({ hovered: false, noteVisible: state.noteVisible });
+    }, 190);
+  }
 }
-function scheduleCollapse() {
+function scheduleCollapse(delay = 260) {
   clearTimeout(state.collapseTimer);
-  state.collapseTimer = setTimeout(() => {
+  const minimumOpenTime = Math.max(0, state.hoverOpenedAt + 350 - Date.now());
+  const wait = Math.max(delay, minimumOpenTime);
+  state.collapseTimer = setTimeout(async () => {
     const editing = ['INPUT','TEXTAREA'].includes(document.activeElement?.tagName);
-    if (!editing) setHovered(false);
-  }, 320);
+    if (editing) return;
+    const pointerInside = await window.desktop.isPointerInside();
+    if (!pointerInside) setHovered(false);
+  }, wait);
 }
 function setNoteVisible(value, focus = false) {
   state.noteVisible = value;
@@ -243,6 +283,8 @@ function renderCycle(now) {
 }
 
 function syncSettings() {
+  el.app.classList.toggle('theme-apple', state.preferences.theme === 'apple');
+  el.app.classList.toggle('theme-aquarium', state.preferences.theme === 'aquarium');
   $$('.theme-choice').forEach((button) => button.classList.toggle('is-active', button.dataset.theme === state.preferences.theme));
   $$('.appearance-choice').forEach((button) => button.classList.toggle('is-active', button.dataset.appearance === state.preferences.appearance));
   $$('.minute-choice').forEach((button) => button.classList.toggle('is-active', Number(button.dataset.minutes) === state.preferences.minutes));
@@ -260,8 +302,12 @@ function applyAppearance() {
   el.aquariumArtwork.src = effective === 'cyber' ? 'assets/aquarium-cyber.png' : 'assets/aquarium-soft.png';
 }
 
-el.app.addEventListener('mouseenter', () => setHovered(true));
-el.app.addEventListener('mouseleave', scheduleCollapse);
+const hoverTargets = [el.visualStage, el.hoverCard, el.hoverBridge];
+hoverTargets.forEach((target) => {
+  target.addEventListener('mouseenter', () => setHovered(true));
+  target.addEventListener('mouseleave', () => scheduleCollapse());
+});
+document.documentElement.addEventListener('mouseleave', () => scheduleCollapse(180));
 el.resetButton.addEventListener('click', resetCycle);
 $('#addButton').addEventListener('click', () => setPanel('add'));
 $('#weekButton').addEventListener('click', () => setPanel('week'));
@@ -294,7 +340,7 @@ async function initialize() {
   pruneHistory(); ensureDay(); renderActivities(); syncSettings(); await loadNote();
   applyAppearance();
   el.launchAtLogin.checked = await window.desktop.getLaunchAtLogin();
-  setInterval(() => { accountTime(); if (state.hovered) renderActivities(); }, 1000);
+  setInterval(() => { accountTime(); if (state.hovered) updateActivityMetrics(); }, 1000);
   setInterval(persist, 15000);
   setInterval(applyAppearance, 60000);
   function frame() { renderCycle(Date.now()); requestAnimationFrame(frame); }

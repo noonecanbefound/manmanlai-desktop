@@ -3,12 +3,15 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const SIZES = {
-  idle: { width: 190, height: 190 },
-  idleNote: { width: 220, height: 290 },
-  hover: { width: 440, height: 230 },
-  hoverNote: { width: 440, height: 320 }
-};
+const WINDOW_SIZE = { width: 440, height: 320 };
+
+function shapeForMode({ hovered, noteVisible }) {
+  const rects = hovered
+    ? [{ x: 0, y: 95, width: 440, height: 225 }]
+    : [{ x: 245, y: 125, width: 195, height: 195 }];
+  if (noteVisible) rects.push({ x: 235, y: 0, width: 205, height: 90 });
+  return rects;
+}
 
 let mainWindow;
 let anchor = { right: 0, bottom: 0 };
@@ -44,7 +47,7 @@ function createWindow() {
     return itemEdge > bestEdge ? item : best;
   }, displays[0]);
   const workArea = rightmostDisplay.workArea;
-  const size = SIZES.idle;
+  const size = WINDOW_SIZE;
   const saved = loadSavedAnchor();
   const defaultAnchor = {
     right: workArea.x + workArea.width - 30,
@@ -63,10 +66,10 @@ function createWindow() {
     height: size.height,
     x,
     y,
-    minWidth: SIZES.idle.width,
-    minHeight: SIZES.idle.height,
-    maxWidth: SIZES.hover.width,
-    maxHeight: SIZES.hoverNote.height,
+    minWidth: WINDOW_SIZE.width,
+    minHeight: WINDOW_SIZE.height,
+    maxWidth: WINDOW_SIZE.width,
+    maxHeight: WINDOW_SIZE.height,
     frame: false,
     transparent: true,
     resizable: false,
@@ -83,6 +86,7 @@ function createWindow() {
     }
   });
 
+  mainWindow.setShape(shapeForMode({ hovered: false, noteVisible: false }));
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('move', () => {
@@ -97,23 +101,19 @@ function createWindow() {
 
 function setWindowMode({ hovered, noteVisible }) {
   if (!mainWindow) return;
-  const key = hovered ? (noteVisible ? 'hoverNote' : 'hover') : (noteVisible ? 'idleNote' : 'idle');
-  const size = SIZES[key];
-  const display = screen.getDisplayNearestPoint({ x: anchor.right, y: anchor.bottom });
-  const area = display.workArea;
-  let x = anchor.right - size.width;
-  let y = anchor.bottom - size.height;
-  x = Math.max(area.x, Math.min(x, area.x + area.width - size.width));
-  y = Math.max(area.y, Math.min(y, area.y + area.height - size.height));
-
-  changingBounds = true;
-  mainWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: size.width, height: size.height }, true);
-  setTimeout(() => { changingBounds = false; }, 220);
+  mainWindow.setShape(shapeForMode({ hovered: Boolean(hovered), noteVisible: Boolean(noteVisible) }));
 }
 
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.on('window:set-mode', (_event, mode) => setWindowMode(mode || {}));
+ipcMain.handle('window:is-pointer-inside', () => {
+  if (!mainWindow) return false;
+  const point = screen.getCursorScreenPoint();
+  const bounds = mainWindow.getBounds();
+  return point.x >= bounds.x && point.x < bounds.x + bounds.width
+    && point.y >= bounds.y && point.y < bounds.y + bounds.height;
+});
 
 ipcMain.handle('settings:get-launch-at-login', () => app.getLoginItemSettings().openAtLogin);
 ipcMain.handle('settings:set-launch-at-login', (_event, enabled) => {
